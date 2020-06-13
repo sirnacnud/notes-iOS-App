@@ -119,6 +119,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     }
 
     func applicationDidEnterBackground(_ application: UIApplication) {
+        notesTableViewController?.updateFrcDelegate(update: .disable)
         if #available(iOS 13.0, *) {
             scheduleAppSync()
         } else {
@@ -127,6 +128,11 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         }
     }
     
+    func applicationDidBecomeActive(_ application: UIApplication) {
+        notesTableViewController?.updateFrcDelegate(update: .enable(withFetch: KeychainHelper.didSyncInBackground))
+        KeychainHelper.didSyncInBackground = false
+    }
+        
     @available(iOS 13.0, *)
     func scheduleAppSync() {
         BGTaskScheduler.shared.cancelAllTaskRequests()
@@ -155,10 +161,8 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
 
         // Inform the system that the background task is complete
         // when the operation completes
-        operation.completionBlock = { [weak self] in
-            DispatchQueue.main.async {
-                self?.notesTableViewController?.tableView.reloadData()
-            }
+        operation.completionBlock = {
+            KeychainHelper.didSyncInBackground = true
             task.setTaskCompleted(success: !operation.isCancelled)
         }
 

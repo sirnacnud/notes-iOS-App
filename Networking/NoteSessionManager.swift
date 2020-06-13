@@ -143,12 +143,10 @@ class NoteSessionManager {
                 var title: String?
                 switch response.result {
                 case let .success(result):
-                        if !result.isEmpty {
-                        if let firstNote = result.first, !firstNote.etag.isEmpty {
-                            KeychainHelper.isNextCloud = true
-                        } else {
-                            KeychainHelper.isNextCloud = false
-                        }
+                    if !result.isEmpty,
+                        let firstNote = result.first,
+                        !firstNote.etag.isEmpty {
+                        KeychainHelper.isNextCloud = true
                         self?.showSyncMessage()
                     } else {
                         self?.pickServer()
@@ -431,7 +429,10 @@ class NoteSessionManager {
     func delete(note: NoteProtocol, completion: SyncCompletionBlock? = nil) {
         var incoming = note
         incoming.deleteNeeded = true
-        if NoteSessionManager.isOnline {
+        if incoming.addNeeded {
+            CDNote.delete(note: incoming)
+            completion?()
+        } else if NoteSessionManager.isOnline {
             deleteOnServer(incoming) { [weak self] result in
                 switch result {
                 case .success( _):

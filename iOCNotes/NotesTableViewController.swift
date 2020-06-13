@@ -12,6 +12,11 @@ import PKHUD
 import SwiftMessages
 import UIKit
 
+enum FrcDelegateUpdate {
+    case disable
+    case enable(withFetch: Bool)
+}
+
 let detailSegueIdentifier = "showDetail"
 let categorySegueIdentifier = "SelectCategorySegue"
 
@@ -22,7 +27,6 @@ class NotesTableViewController: UITableViewController {
     @IBOutlet var settingsBarButton: UIBarButtonItem!
 
     var notes: [CDNote]?
-    var addingNote = false
     var searchController: UISearchController?
     var editorViewController: EditorViewController?
     
@@ -151,6 +155,7 @@ class NotesTableViewController: UITableViewController {
         searchController?.hidesNavigationBarDuringPresentation = true
         searchController?.searchBar.delegate = self
         searchController?.searchBar.sizeToFit()
+        updateFrcDelegate(update: .enable(withFetch: true))
         tableView.tableHeaderView = searchController?.searchBar
         #endif
 
@@ -177,6 +182,24 @@ class NotesTableViewController: UITableViewController {
         settingsBarButton.isEnabled = true
         refreshBarButton.isEnabled = NoteSessionManager.isOnline
     }
+    
+    // MARK: - Public functions
+    
+    func updateFrcDelegate(update: FrcDelegateUpdate) {
+        switch update {
+        case .disable:
+            notesFrc.delegate = nil
+        case .enable(let withFetch):
+            notesFrc.delegate = self
+            if withFetch {
+                do {
+                    try notesFrc.performFetch()
+                    tableView.reloadData()
+                } catch { }
+            }
+        }
+    }
+
     // MARK: - Table view data source
 
     override func numberOfSections(in tableView: UITableView) -> Int {
@@ -473,8 +496,6 @@ class NotesTableViewController: UITableViewController {
                                              managedObjectContext: NotesData.mainThreadContext,
                                              sectionNameKeyPath: "sectionName",
                                              cacheName: nil)
-        frc.delegate = self
-        try? frc.performFetch()
         return frc
     }
 
