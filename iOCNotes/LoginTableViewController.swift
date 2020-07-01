@@ -58,6 +58,22 @@ class LoginTableViewController: UITableViewController {
     }
     #endif
     
+    override func tableView(_ tableView: UITableView, titleForFooterInSection section: Int) -> String? {
+        switch section {
+        case 0:
+            return nil
+        default:
+            guard !KeychainHelper.productName.isEmpty,
+                !KeychainHelper.productVersion.isEmpty
+                else {
+                return NSLocalizedString("Not logged in", comment: "Message about not being logged in")
+            }
+            let notesVersion = KeychainHelper.notesVersion.isEmpty ? "" : "\(KeychainHelper.notesVersion) "
+            let format = NSLocalizedString("Using Notes %@on %@ %@.", comment:"Message with Notes version, product name and version")
+            return String.localizedStringWithFormat(format, notesVersion, KeychainHelper.productName, KeychainHelper.productVersion)
+        }
+    }
+
     override func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
         guard indexPath.section == 1,
             connectLabel.isEnabled,
@@ -68,9 +84,19 @@ class LoginTableViewController: UITableViewController {
         }
         tableView.deselectRow(at: indexPath, animated: true)
         connectionActivityIndicator.startAnimating()
-
-        NoteSessionManager.shared.login(server: serverAddress, username: username, password: password) { [weak self] in
-            self?.connectionActivityIndicator.stopAnimating()
+        
+        NoteSessionManager.shared.status(server: serverAddress, username: username, password: password) { [weak self] in
+            NoteSessionManager.shared.capabilities(server: serverAddress, username: username, password: password) { [weak self] in
+                if KeychainHelper.notesApiVersion == Router.defaultApiVersion {
+                    NoteSessionManager.shared.login(server: serverAddress, username: username, password: password) { [weak self] in
+                        self?.connectionActivityIndicator.stopAnimating()
+                        self?.tableView.reloadSections(IndexSet(integer: 1), with: .none)
+                    }
+                } else {
+                    self?.connectionActivityIndicator.stopAnimating()
+                    self?.tableView.reloadSections(IndexSet(integer: 1), with: .none)
+                }
+            }
         }
     }
     
@@ -109,7 +135,7 @@ extension LoginTableViewController: UITextFieldDelegate {
             newString = (newString as NSString).replacingCharacters(in: range, with: string)
 
             if textField == serverTextField {
-                textHasChanged = !(newString == UserDefaults.standard.string(forKey: "Server"))
+                textHasChanged = !(newString == KeychainHelper.server)
             } else if textField == usernameTextField {
                 textHasChanged = !(newString == KeychainHelper.username)
             } else if textField == passwordTextField {

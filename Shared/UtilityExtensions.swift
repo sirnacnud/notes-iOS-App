@@ -98,3 +98,35 @@ extension NSToolbarItem.Identifier {
     static let segmented = NSToolbarItem.Identifier(rawValue: "segmented")
 }
 #endif
+
+extension String {
+    
+    func truncate(length: Int, trailing: String = "…") -> String {
+        if (self.count <= length) {
+            return self
+        }
+        var truncated = self.prefix(length)
+        while truncated.last != " " {
+            truncated = truncated.dropLast()
+        }
+        return truncated + trailing
+    }
+    
+}
+
+func noteTitle(_ note: NoteProtocol) -> String {
+    var result = note.title
+    if note.content.isEmpty {
+        result = note.title
+    } else {
+        if note.title.count <= 50 || note.title.hasPrefix(Constants.newNote) {
+            let components = note.content.split(separator: "\n")
+            result = String(components.first ?? "")
+            let forbiddenCharacters: Set<Character> = ["*", "|", "/", "\\", ":", "\"", "<", ">", "?"]
+            result.removeAll(where: { forbiddenCharacters.contains($0) })
+            result = result.trimmingCharacters(in: .whitespaces)
+            result = result.truncate(length: 50)
+        }
+    }
+    return result
+}

@@ -23,7 +23,7 @@ class EditorViewController: UIViewController {
     var updatedByEditing = false
     var noteExporter: PBHNoteExporter?
     var bottomLayoutConstraint: NSLayoutConstraint?
-    var editingTimer: Timer?
+    var isNewNote = false
 
     var note: CDNote? {
         didSet {
@@ -43,6 +43,7 @@ class EditorViewController: UIViewController {
     var noteView = PBHHeaderTextView(frame: CGRect(x: 0, y: 0, width: 1, height: 1))
 
     private var observers = [NSObjectProtocol]()
+    private let throttler = Throttler(minimumDelay: 0.5)
 
     var screenShot: UIImage {
         var capturedScreen: UIImage?
@@ -207,7 +208,7 @@ class EditorViewController: UIViewController {
             textToExport = noteView.text
         }
         if let text = textToExport {
-            noteExporter = PBHNoteExporter(viewController: self, barButtonItem: activityButton, text: text, title: note?.title ?? "Untitled")
+            noteExporter = PBHNoteExporter(title: note?.title ?? "Untitled", text: text, viewController: self, from: activityButton)
             noteExporter?.showMenu()
         }
     }
@@ -228,7 +229,6 @@ class EditorViewController: UIViewController {
         return controller
     }()
     
-    @objc
     func deleteNote(_ sender: Any?) {
         NotificationCenter.default.post(name: .deletingNote, object: self)
         let imageView = UIImageView(frame: self.noteView.frame)
@@ -258,6 +258,7 @@ class EditorViewController: UIViewController {
     @IBAction func onAdd(_ sender: Any?) {
         NoteSessionManager.shared.add(content: "", category: "", favorite: false) { [weak self] note in
             self?.note = note
+            self?.isNewNote = true
         }
     }
     
@@ -341,6 +342,9 @@ extension EditorViewController: UITextViewDelegate {
     fileprivate func updateNoteContent() {
         if let note = self.note, let text = self.noteView.text, text != note.content {
             note.content = text
+            if isNewNote {
+                note.title = noteTitle(note)
+            }
             NoteSessionManager.shared.update(note: note, completion: { [weak self] in
                 self?.updateHeaderLabel()
             })
@@ -355,13 +359,9 @@ extension EditorViewController: UITextViewDelegate {
         #if targetEnvironment(macCatalyst)
         (splitViewController as? PBHSplitViewController)?.buildMacToolbar()
         #endif
-        if editingTimer != nil {
-            editingTimer?.invalidate()
-            editingTimer = nil
-        }
-        editingTimer = Timer.scheduledTimer(withTimeInterval: 2, repeats: false, block: { [weak self] _ in
+        throttler.throttle { [weak self] in
             self?.updateNoteContent()
-        })
+        }
     }
     
     func textView(_ textView: UITextView, shouldChangeTextIn range: NSRange, replacementText text: String) -> Bool {

@@ -78,10 +78,7 @@ struct KeychainHelper {
 
     static var isNextCloud: Bool {
         get {
-            return UserDefaults.standard.bool(forKey: "IsNextCloud")
-        }
-        set {
-            UserDefaults.standard.set(newValue, forKey: "IsNextCloud")
+            return KeychainHelper.productName == "Nextcloud"
         }
     }
 
@@ -118,4 +115,58 @@ struct KeychainHelper {
         }
     }
     
+    static var notesApiVersion: String {
+        get {
+            return UserDefaults.standard.string(forKey: "notesApiVersion") ?? Router.defaultApiVersion
+        }
+        set {
+            UserDefaults.standard.set(newValue, forKey: "notesApiVersion")
+        }
+    }
+
+    static var notesVersion: String {
+        get {
+            return UserDefaults.standard.string(forKey: "notesVersion") ?? ""
+        }
+        set {
+            UserDefaults.standard.set(newValue, forKey: "notesVersion")
+        }
+    }
+
+    static var productVersion: String {
+        get {
+            return UserDefaults.standard.string(forKey: "productVersion") ?? ""
+        }
+        set {
+            UserDefaults.standard.set(newValue, forKey: "productVersion")
+        }
+    }
+    
+    static var productName: String {
+        get {
+            return UserDefaults.standard.string(forKey: "productName") ?? ""
+        }
+        set {
+            UserDefaults.standard.set(newValue, forKey: "productName")
+        }
+    }
+
+    static var eTag: String {
+        get {
+            return UserDefaults.standard.string(forKey: "eTag") ?? ""
+        }
+        set {
+            UserDefaults.standard.set(newValue, forKey: "eTag")
+        }
+    }
+
+    static var lastModified: Int {
+        get {
+            return UserDefaults.standard.integer(forKey: "lastModified")
+        }
+        set {
+            UserDefaults.standard.set(newValue, forKey: "lastModified")
+        }
+    }
+
 }
